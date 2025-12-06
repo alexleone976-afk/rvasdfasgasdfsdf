@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hardcoded Link Search Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #0056b3;
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; 
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #e9ecef;
+            min-height: 20px;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Hardcoded Link Search Tool</h1>
+    <p>This tool searches for a link within the hardcoded **bookmarks.html** file.</p>
+
+    <form id="linkSearchForm">
+        <label for="inputLink">1. Enter Link to Search:</label>
+        <input type="text" id="inputLink" name="inputLink" placeholder="e.g., https://example.com/page1" required>
+        <button type="submit" id="searchButton" disabled>Search Link</button>
+    </form>
+
+    <div id="output">
+        Attempting to load **bookmarks.html**...
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('linkSearchForm');
+    const inputField = document.getElementById('inputLink');
+    const outputDiv = document.getElementById('output');
+    const searchButton = document.getElementById('searchButton');
+    
+    // Variable to hold the content of the loaded file
+    let fileContent = '';
+    const BOOKMARKS_FILE = 'bookmarks.html'; // Hardcoded file name
+
+    // --- FILE LOADING LOGIC (Using fetch) ---
+    async function loadBookmarksFile() {
+        try {
+            // NOTE: This fetch call requires a local web server (e.g., Live Server) to run
+            const response = await fetch(BOOKMARKS_FILE);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            fileContent = await response.text();
+            outputDiv.innerHTML = `<span class="success">✅ File **${BOOKMARKS_FILE}** loaded successfully! You can now search.</span>`;
+            searchButton.disabled = false;
+        } catch (error) {
+            outputDiv.innerHTML = `<span class="error">❌ Error loading **${BOOKMARKS_FILE}**. Make sure the file exists and you are running this from a local web server (not file://). Details: ${error.message}</span>`;
+            searchButton.disabled = true;
+        }
+    }
+
+    // Load the file when the script starts
+    loadBookmarksFile();
+
+    // --- SEARCH LOGIC ---
+    function searchLinks(event) {
+        event.preventDefault(); 
+
+        const searchLink = inputField.value.trim();
+        outputDiv.innerHTML = 'Searching...';
+
+        if (!fileContent) {
+            outputDiv.innerHTML = '<span class="error">Bookmark file not loaded. Please wait or check the error above.</span>';
+            return;
+        }
+        if (!searchLink) {
+            outputDiv.innerHTML = '<span class="error">Please enter a link to search.</span>';
+            return;
+        }
+        
+        // Use DOMParser to handle the file content, treating it as HTML
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(fileContent, 'text/html');
+        
+        // Find all anchor (<a>) elements
+        const links = doc.querySelectorAll('a'); 
+        
+        let foundLink = null;
+        
+        // Iterate and search
+        for (const linkElement of links) {
+            // Check if the link's href matches the input link
+            // Using .includes() instead of strict === allows finding partial URLs if necessary, 
+            // but for exact matches, === is better. Sticking to === for accuracy.
+            if (linkElement.href.trim() === searchLink) {
+                foundLink = linkElement.href;
+                break;
+            }
+        }
+
+        // Display the result
+        if (foundLink) {
+            outputDiv.innerHTML = `<span class="success">✅ Link Found!</span><br><a href="${foundLink}" target="_blank">${foundLink}</a>`;
+        } else {
+            outputDiv.innerHTML = `<span class="error">❌ Error: Link **${searchLink}** was not found in the loaded file.</span>`;
+        }
+    }
+
+    form.addEventListener('submit', searchLinks);
+</script>
+
+</body>
+</html>
